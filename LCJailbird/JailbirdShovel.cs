@@ -22,7 +22,7 @@ public class JailbirdShovel : GrabbableObject
     public bool doExplode;
 
     public int durability = 1;
-
+    public int jailbirdChargeSpeed = 35;
     public int jailbirdHitForce = 5;
 
     public bool reelingUp;
@@ -114,37 +114,6 @@ public class JailbirdShovel : GrabbableObject
 
         yield return new WaitForSeconds(0.3f);
 
-        Plugin.Logger.LogInfo(1);
-        if (durability == 0)
-        {
-            Plugin.Logger.LogInfo(2);
-            if (doExplode)
-            {
-                Plugin.Logger.LogInfo(3);
-                //StartCoroutine(Plugin.ExplodeAtDelayed(previousPlayerHeldBy.transform.position, 0.1f));
-                Landmine.SpawnExplosion(playerHeldBy.transform.position + playerHeldBy.transform.forward * 0.5f, true, 3, 3, 50);
-                yield return new WaitForFixedUpdate();
-            }
-            Plugin.Logger.LogInfo(4);
-            previousPlayerHeldBy.DespawnHeldObject();
-        }
-        Plugin.Logger.LogInfo(5);
-        if (durability > 0)
-        {
-            Plugin.Logger.LogInfo(6);
-            durability--;
-            Plugin.Logger.LogInfo(7);
-            if (durability == 0)
-            {
-                Plugin.Logger.LogInfo(8);
-                this.transform.Find("jailbird/Mesh_Jailbird/red_glow").gameObject.SetActive(true);
-                Plugin.Logger.LogInfo(9);
-                this.transform.Find("jailbird/Mesh_Jailbird/blue_glow").gameObject.SetActive(false);
-                Plugin.Logger.LogInfo(10);
-            }
-        }
-        Plugin.Logger.LogInfo(11);
-
         reelingUp = false;
         reelingUpCoroutine = null;
         playerHeldBy.twoHanded = false;
@@ -154,7 +123,7 @@ public class JailbirdShovel : GrabbableObject
     {
         if (checkEnemyInfront)
         {
-            doAttack = Physics.SphereCast(origin: previousPlayerHeldBy.gameplayCamera.transform.position + previousPlayerHeldBy.gameplayCamera.transform.right * -0.35f, 0.65f, previousPlayerHeldBy.gameplayCamera.transform.forward, out RCHit, 1.85f, jailbirdMaskint, QueryTriggerInteraction.Collide);
+            doAttack = Physics.SphereCast(origin: previousPlayerHeldBy.gameplayCamera.transform.position + previousPlayerHeldBy.gameplayCamera.transform.right * -0.35f, 0.55f, previousPlayerHeldBy.gameplayCamera.transform.forward, out RCHit, 1.85f, jailbirdMaskint, QueryTriggerInteraction.Collide);
             Plugin.Logger.LogInfo(doAttack);
         }
         if (chargeTimerActive && !chargeTimerFinished)
@@ -165,7 +134,7 @@ public class JailbirdShovel : GrabbableObject
             }
             else
             {
-                previousPlayerHeldBy.externalForces = new Vector3(previousPlayerHeldBy.gameplayCamera.transform.forward.x, 0, previousPlayerHeldBy.gameplayCamera.transform.forward.z) * 25;
+                previousPlayerHeldBy.externalForces = new Vector3(previousPlayerHeldBy.gameplayCamera.transform.forward.x, 0, previousPlayerHeldBy.gameplayCamera.transform.forward.z) * jailbirdChargeSpeed;
             }
         }
     }
@@ -215,55 +184,6 @@ public class JailbirdShovel : GrabbableObject
 
     public void HitShovel(bool cancel = false)
     {
-        /*
-        if (previousPlayerHeldBy == null)
-        {
-            return;
-        }
-        previousPlayerHeldBy.activatingItem = false;
-        bool flag = false;
-        int hitSurfaceID = -1;
-        if (!cancel)
-        {
-            previousPlayerHeldBy.twoHanded = false;
-            Debug.DrawRay(previousPlayerHeldBy.gameplayCamera.transform.position + previousPlayerHeldBy.gameplayCamera.transform.right * -0.35f, previousPlayerHeldBy.gameplayCamera.transform.forward * 1.85f, Color.blue, 5f);
-            objectsHitByJailbird = Physics.SphereCastAll(previousPlayerHeldBy.gameplayCamera.transform.position + previousPlayerHeldBy.gameplayCamera.transform.right * -0.35f, 0.75f, previousPlayerHeldBy.gameplayCamera.transform.forward, 1.85f, jailbirdMaskint, QueryTriggerInteraction.Collide);
-            objectsHitByJailbirdList = objectsHitByJailbird.OrderBy((x) => x.distance).ToList();
-            Vector3 start = previousPlayerHeldBy.gameplayCamera.transform.position;
-            for (int i = 0; i < objectsHitByJailbirdList.Count; i++)
-            {
-                IHittable component;
-                RaycastHit hitInfo;
-                if (objectsHitByJailbirdList[i].transform.gameObject.layer == 8 || objectsHitByJailbirdList[i].transform.gameObject.layer == 11)
-                {
-                    start = objectsHitByJailbirdList[i].point + objectsHitByJailbirdList[i].normal * 0.01f;
-                    flag = true;
-                    string text = objectsHitByJailbirdList[i].collider.gameObject.tag;
-                    for (int j = 0; j < StartOfRound.Instance.footstepSurfaces.Length; j++)
-                    {
-                        if (StartOfRound.Instance.footstepSurfaces[j].surfaceTag == text)
-                        {
-                            jailbirdAudio.PlayOneShot(StartOfRound.Instance.footstepSurfaces[j].hitSurfaceSFX);
-                            WalkieTalkie.TransmitOneShotAudio(jailbirdAudio, StartOfRound.Instance.footstepSurfaces[j].hitSurfaceSFX);
-                            hitSurfaceID = j;
-                            break;
-                        }
-                    }
-                }
-                else if (objectsHitByJailbirdList[i].transform.TryGetComponent(out component) && !(objectsHitByJailbirdList[i].transform == previousPlayerHeldBy.transform) && (objectsHitByJailbirdList[i].point == Vector3.zero || !Physics.Linecast(start, objectsHitByJailbirdList[i].point, out hitInfo, StartOfRound.Instance.collidersAndRoomMaskAndDefault)))
-                {
-                    flag = true;
-                    Vector3 forward = previousPlayerHeldBy.gameplayCamera.transform.forward;
-                }
-            }
-        }
-        if (flag)
-        {
-            var soundID = RoundManager.PlayRandomClip(jailbirdAudio, hitSFX);
-            FindObjectOfType<RoundManager>().PlayAudibleNoise(transform.position, 17f, 0.8f);
-            playerHeldBy.playerBodyAnimator.SetTrigger("shovelHit");
-            HitShovelServerRpc(soundID);
-        }*/
         if (this.previousPlayerHeldBy == null)
         {
             Debug.LogError("Previousplayerheldby is null on this client when HitShovel is called.");
@@ -277,7 +197,7 @@ public class JailbirdShovel : GrabbableObject
         if (!cancel)
         {
             previousPlayerHeldBy.twoHanded = false;
-            objectsHitByJailbird = Physics.SphereCastAll(this.previousPlayerHeldBy.gameplayCamera.transform.position + this.previousPlayerHeldBy.gameplayCamera.transform.right * -0.35f, 0.85f, this.previousPlayerHeldBy.gameplayCamera.transform.forward, 1.5f, jailbirdMaskint, QueryTriggerInteraction.Collide);
+            objectsHitByJailbird = Physics.SphereCastAll(this.previousPlayerHeldBy.gameplayCamera.transform.position + this.previousPlayerHeldBy.gameplayCamera.transform.right * -0.35f, 1f, this.previousPlayerHeldBy.gameplayCamera.transform.forward, 1.5f, jailbirdMaskint, QueryTriggerInteraction.Collide);
             objectsHitByJailbirdList = (from x in objectsHitByJailbird orderby x.distance select x).ToList();
             List<EnemyAI> list = new List<EnemyAI>();
             for (int i = 0; i < this.objectsHitByJailbirdList.Count; i++)
@@ -322,7 +242,7 @@ public class JailbirdShovel : GrabbableObject
                             }
                             flag3 = true;
                         }
-                        bool flag4 = hittable.Hit(jailbirdHitForce, forward, this.previousPlayerHeldBy, true, 1);
+                        bool flag4 = hittable.Hit(jailbirdHitForce, forward, previousPlayerHeldBy, true, 1);
                         if (flag4 && component != null)
                         {
                             list.Add(component.mainScript);
@@ -350,102 +270,75 @@ public class JailbirdShovel : GrabbableObject
                 WalkieTalkie.TransmitOneShotAudio(jailbirdAudio, StartOfRound.Instance.footstepSurfaces[num].hitSurfaceSFX, 1f);
             }
             playerHeldBy.playerBodyAnimator.SetTrigger("shovelHit");
-            HitShovelServerRpc(num);
+            HitShovelServerRpc(num, doExplode);
         }
     }
 
     [ServerRpc]
-    public void HitShovelServerRpc(int soundID)
+    public void HitShovelServerRpc(int soundID, bool explode)
     {
-        HitShovelClientRpc(soundID);
+        HitShovelClientRpc(soundID, doExplode);
     }
 
     [ClientRpc]
-    public void HitShovelClientRpc(int soundID)
+    public void HitShovelClientRpc(int soundID, bool explode)
     {
-        HitSurfaceWithShovel(soundID);
+        HitSurfaceWithShovel(soundID, doExplode);
     }
 
-    public void HitSurfaceWithShovel(int hitSurfaceID)
+    public void HitSurfaceWithShovel(int hitSurfaceID, bool explode)
     {
-        jailbirdAudio.PlayOneShot(StartOfRound.Instance.footstepSurfaces[hitSurfaceID].hitSurfaceSFX);
-        WalkieTalkie.TransmitOneShotAudio(jailbirdAudio, StartOfRound.Instance.footstepSurfaces[hitSurfaceID].hitSurfaceSFX);
-    }
-    /*
-    [RuntimeInitializeOnLoadMethod]
-    public static void InitializeRPCS_Shovel()
-    {
-        NetworkManager.__rpc_func_table.Add(4113335123u, __rpc_handler_4113335123);
-        NetworkManager.__rpc_func_table.Add(2042054613u, __rpc_handler_2042054613);
-        NetworkManager.__rpc_func_table.Add(2096026133u, __rpc_handler_2096026133);
-        NetworkManager.__rpc_func_table.Add(275435223u, __rpc_handler_275435223);
-    }
-    
-    public static void __rpc_handler_4113335123(NetworkBehaviour target, FastBufferReader reader, __RpcParams rpcParams)
-    {
-        NetworkManager networkManager = target.NetworkManager;
-        if ((object)networkManager == null || !networkManager.IsListening)
+        try
         {
-            return;
+            jailbirdAudio.PlayOneShot(StartOfRound.Instance.footstepSurfaces[hitSurfaceID].hitSurfaceSFX);
+            WalkieTalkie.TransmitOneShotAudio(jailbirdAudio, StartOfRound.Instance.footstepSurfaces[hitSurfaceID].hitSurfaceSFX);
         }
-        if (rpcParams.Server.Receive.SenderClientId != target.OwnerClientId)
+        catch (Exception e)
         {
-            if (networkManager.LogLevel <= LogLevel.Normal)
+            Plugin.Logger.LogWarning("Error when playing shovel hit sound, are spawning things that arent naturally on that moon?");
+            Plugin.Logger.LogWarning(e);
+        }
+        StartCoroutine(durabilityHandler(explode));
+    }
+    public IEnumerator durabilityHandler(bool explode)
+    {
+        Plugin.Logger.LogInfo(1);
+        if (durability == 0)
+        {
+            Plugin.Logger.LogInfo(2);
+            if (explode)
             {
-                Debug.LogError("Only the owner can invoke a ServerRpc that requires ownership!");
+                Plugin.Logger.LogInfo(3);
+                //StartCoroutine(Plugin.ExplodeAtDelayed(previousPlayerHeldBy.transform.position, 0.1f));
+                yield return new WaitForFixedUpdate();
+                Landmine.SpawnExplosion(playerHeldBy.transform.position + playerHeldBy.transform.forward * 0.5f, true, 3, 3, 50);
+                yield return new WaitForFixedUpdate();
+            }
+            Plugin.Logger.LogInfo(4);
+            try
+            {
+                previousPlayerHeldBy.DespawnHeldObject();
+            }
+            catch
+            {
+                Plugin.Logger.LogWarning("tried to destroy jailbird but jailbird is already destroyed");
             }
         }
-        else
+        Plugin.Logger.LogInfo(5);
+        if (durability > 0)
         {
-            ((JailbirdShovel)target).__rpc_exec_stage = __RpcExecStage.Server;
-            ((JailbirdShovel)target).ReelUpSFXServerRpc();
-            ((JailbirdShovel)target).__rpc_exec_stage = __RpcExecStage.None;
-        }
-    }
-
-    public static void __rpc_handler_2042054613(NetworkBehaviour target, FastBufferReader reader, __RpcParams rpcParams)
-    {
-        NetworkManager networkManager = target.NetworkManager;
-        if ((object)networkManager != null && networkManager.IsListening)
-        {
-            ((JailbirdShovel)target).__rpc_exec_stage = __RpcExecStage.Client;
-            ((JailbirdShovel)target).ReelUpSFXClientRpc();
-            ((JailbirdShovel)target).__rpc_exec_stage = __RpcExecStage.None;
-        }
-    }
-
-    public static void __rpc_handler_2096026133(NetworkBehaviour target, FastBufferReader reader, __RpcParams rpcParams)
-    {
-        NetworkManager networkManager = target.NetworkManager;
-        if ((object)networkManager == null || !networkManager.IsListening)
-        {
-            return;
-        }
-        if (rpcParams.Server.Receive.SenderClientId != target.OwnerClientId)
-        {
-            if (networkManager.LogLevel <= LogLevel.Normal)
+            Plugin.Logger.LogInfo(6);
+            durability--;
+            Plugin.Logger.LogInfo(7);
+            if (durability == 0)
             {
-                Debug.LogError("Only the owner can invoke a ServerRpc that requires ownership!");
+                Plugin.Logger.LogInfo(8);
+                this.transform.Find("jailbird/Mesh_Jailbird/red_glow").gameObject.SetActive(true);
+                Plugin.Logger.LogInfo(9);
+                this.transform.Find("jailbird/Mesh_Jailbird/blue_glow").gameObject.SetActive(false);
+                Plugin.Logger.LogInfo(10);
             }
         }
-        else
-        {
-            ByteUnpacker.ReadValueBitPacked(reader, out int value);
-            ((JailbirdShovel)target).__rpc_exec_stage = __RpcExecStage.Server;
-            ((JailbirdShovel)target).HitShovelServerRpc(value);
-            ((JailbirdShovel)target).__rpc_exec_stage = __RpcExecStage.None;
-        }
+        Plugin.Logger.LogInfo(11);
     }
-
-    public static void __rpc_handler_275435223(NetworkBehaviour target, FastBufferReader reader, __RpcParams rpcParams)
-    {
-        NetworkManager networkManager = target.NetworkManager;
-        if ((object)networkManager != null && networkManager.IsListening)
-        {
-            ByteUnpacker.ReadValueBitPacked(reader, out int value);
-            ((JailbirdShovel)target).__rpc_exec_stage = __RpcExecStage.Client;
-            ((JailbirdShovel)target).HitShovelClientRpc(value);
-            ((JailbirdShovel)target).__rpc_exec_stage = __RpcExecStage.None;
-        }
-    }*/
 }

@@ -58,28 +58,16 @@ namespace LCJailbird
                     Logger.LogError("JAILBIRD ITEM IS NULL");
                     return;
                 }
-                //JailbirdItem jbitem = jailbirditemprops.spawnPrefab.AddComponent<JailbirdItem>();
-                //jbitem.grabbable = true;
-                //jbitem.useCooldown = 1;
-                //jbitem.itemProperties = jailbirditemprops;
-                //jbitem.grabbableToEnemies = true;
 
                 JailbirdShovel jbitem = jailbirditemprops.spawnPrefab.AddComponent<JailbirdShovel>();
                 jbitem.itemProperties = jailbirditemprops;
                 jbitem.grabbable = true;
-                Logger.LogInfo(1);
                 jbitem.reelUpSFX = bundle.LoadAsset<AudioClip>("Charge_Start_fixed");
-                Logger.LogInfo(2);
                 jbitem.swingSFX = bundle.LoadAsset<AudioClip>("Charge_Swing_fixed");
-                Logger.LogInfo(3);
                 jbitem.chargeSFX = bundle.LoadAsset<AudioClip>("Charge_Run_fixed");
-                Logger.LogInfo(4);
                 jbitem.hitSFX = new AudioClip[1];
-                Logger.LogInfo(5);
                 jbitem.hitSFX[0] = bundle.LoadAsset<AudioClip>("Normal_Hit");
-                Logger.LogInfo(6);
                 jbitem.jailbirdAudio = jailbirditemprops.spawnPrefab.transform.GetComponent<AudioSource>();
-                Logger.LogInfo(7);
 
                 jailbirditemprops.twoHandedAnimation = true;
                 jailbirditemprops.grabAnim = "HoldLung";
@@ -94,6 +82,7 @@ namespace LCJailbird
             node.clearPreviousText = true;
             node.displayText = "???";
             Items.RegisterShopItem(jailbirditemprops, null, null, node, 500);
+            NetworkPrefabs.RegisterNetworkPrefab(jailbirditemprops.spawnPrefab);
 
             Logger.LogInfo("successfully set-up item");
         }

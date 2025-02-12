@@ -51,10 +51,13 @@
       <HintPath>D:\Steam\steamapps\common\Lethal Company\Lethal Company_Data\Managed\Assembly-CSharp.dll</HintPath>
     </Reference>
     <Reference Include="LethalLib">
-      <HintPath>..\..\..\..\AppData\Roaming\r2modmanPlus-local\LethalCompany\profiles\mod creation time\BepInEx\plugins\Evaisa-LethalLib\LethalLib\LethalLib.dll</HintPath>
+      <HintPath>C:\Users\user\AppData\Roaming\r2modmanPlus-local\LethalCompany\profiles\MOD CREATION TIME\BepInEx\plugins\Evaisa-LethalLib\LethalLib\LethalLib.dll</HintPath>
     </Reference>
     <Reference Include="Unity.Netcode.Runtime">
       <HintPath>D:\Steam\steamapps\common\Lethal Company\Lethal Company_Data\Managed\Unity.Netcode.Runtime.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Services.Core.Threading">
+      <HintPath>D:\Steam\steamapps\common\RUMBLE\MelonLoader\Il2CppAssemblies\Unity.Services.Core.Threading.dll</HintPath>
     </Reference>
     <Reference Include="Unity.Timeline">
       <HintPath>D:\Steam\steamapps\common\Lethal Company\Lethal Company_Data\Managed\Unity.Timeline.dll</HintPath>
@@ -266,6 +269,6 @@
   </ItemGroup>
   
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="xcopy &quot;C:\Users\agame\source\repos\LCJailbird\LCJailbird\obj\Debug\netstandard2.1\LCJailbird.dll&quot; &quot;C:\Users\agame\AppData\Roaming\r2modmanPlus-local\LethalCompany\profiles\mod creation time\BepInEx\plugins\LCJailbird&quot; /Y" />
+    <Exec Command="xcopy &quot;E:\github desktop\LCJailbird\LCJailbird\obj\Debug\netstandard2.1\LCJailbird.dll&quot; &quot;C:\Users\user\AppData\Roaming\r2modmanPlus-local\LethalCompany\profiles\MOD CREATION TIME\BepInEx\plugins\LCJailbird&quot; /Y&#xD;&#xA;call &quot;C:\Users\user\Downloads\NetcodePatcher.bat&quot;" />
   </Target>
 </Project>
