@@ -4,8 +4,10 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using GameNetcodeStuff;
 using LCJailbird;
+using LCJailbird.HelperBehaviour;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -69,47 +71,45 @@ public class JailbirdShovel : GrabbableObject
             {
                 StopCoroutine(reelingUpCoroutine);
             }
-            reelingUpCoroutine = StartCoroutine(reelUpShovel());
+            reelingUpCoroutine = StartCoroutine(reelUpJailbird());
         }
     }
 
-    public IEnumerator reelUpShovel()
+    public IEnumerator reelUpJailbird()
     {
         playerHeldBy.activatingItem = true;
         playerHeldBy.twoHanded = true;
-
+        
         playerHeldBy.playerBodyAnimator.ResetTrigger("shovelHit");
         playerHeldBy.playerBodyAnimator.SetBool("reelingUp", value: true);
         jailbirdAudio.PlayOneShot(reelUpSFX);
         ReelUpSFXServerRpc();
 
         yield return new WaitForSeconds(5.5f);
-        //yield return new WaitUntil(() => !isHoldingButton || !isHeld);
 
         StartCoroutine(chargeTimer(3)); // max charge time
         jailbirdAudio.PlayOneShot(chargeSFX); // starts charge SFX
+        ChargingSFXServerRpc();
         checkEnemyInfront = true;
         yield return new WaitUntil(() => (chargeTimerFinished && !chargeTimerActive) || doAttack);
         jailbirdAudio.Stop(); // stops charge SFX if it's still playing
+        StopSFXServerRpc();
         if (durability <= 1) { doExplode = doAttack; }
         checkEnemyInfront = false;
         doAttack = false;
         chargeTimerFinished = false;
         chargeTimerActive = false;
 
-        SwingShovel(!isHeld);
-
-        //yield return new WaitForSeconds(0.13f);
-        //yield return new WaitForEndOfFrame();
+        SwingJailbird(!isHeld);
 
         try
         {
-            HitShovel(!isHeld);
+            HitJailbird(!isHeld);
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            Plugin.Logger.LogWarning("error when hitting with a shovel,");
-            Plugin.Logger.LogError(e);
+            Plugin.Logger.LogError("error when hitting with a shovel,");
+            Plugin.Logger.LogError(ex);
         }
 
         yield return new WaitForSeconds(0.3f);
@@ -151,6 +151,7 @@ public class JailbirdShovel : GrabbableObject
         }
     }
 
+    #region reel up SFX RPCs
     [ServerRpc]
     public void ReelUpSFXServerRpc()
     {
@@ -162,7 +163,58 @@ public class JailbirdShovel : GrabbableObject
     {
         jailbirdAudio.PlayOneShot(reelUpSFX);
     }
+    #endregion
+    #region charing SFX RPCs
+    [ServerRpc]
+    public void ChargingSFXServerRpc()
+    {
+        ChargingSFXClientRpc();
+    }
 
+    [ClientRpc]
+    public void ChargingSFXClientRpc()
+    {
+        jailbirdAudio.PlayOneShot(chargeSFX);
+    }
+
+
+    [ServerRpc]
+    public void StopSFXServerRpc()
+    {
+        StopSFXClientRpc();
+    }
+
+    [ClientRpc]
+    public void StopSFXClientRpc()
+    {
+        jailbirdAudio.Stop();
+    }
+    #endregion
+    #region Swing SFX RPCs
+    [ServerRpc]
+    public void SwingSFXServerRpc()
+    {
+        SwingSFXClientRpc();
+    }
+    [ClientRpc]
+    public void SwingSFXClientRpc()
+    {
+        jailbirdAudio.PlayOneShot(swingSFX);
+    }
+    #endregion
+    #region Hit RPCs
+    [ServerRpc]
+    public void HitJailbirdServerRpc(int soundID)
+    {
+        HitJailbirdClientRpc(soundID);
+    }
+
+    [ClientRpc]
+    public void HitJailbirdClientRpc(int soundID)
+    {
+        HitSurfaceWithJailbird(soundID);
+    }
+    #endregion
     public override void DiscardItem()
     {
         if (playerHeldBy != null)
@@ -172,24 +224,24 @@ public class JailbirdShovel : GrabbableObject
         base.DiscardItem();
     }
 
-    public void SwingShovel(bool cancel = false)
+    public void SwingJailbird(bool cancel = false)
     {
         previousPlayerHeldBy.playerBodyAnimator.SetBool("reelingUp", value: false);
         if (!cancel)
         {
             jailbirdAudio.PlayOneShot(swingSFX);
+            SwingSFXServerRpc();
             previousPlayerHeldBy.UpdateSpecialAnimationValue(specialAnimation: true, (short)previousPlayerHeldBy.transform.localEulerAngles.y, 0.4f);
         }
     }
 
-    public void HitShovel(bool cancel = false)
+    public void HitJailbird(bool cancel = false)
     {
         if (this.previousPlayerHeldBy == null)
         {
             Debug.LogError("Previousplayerheldby is null on this client when HitShovel is called.");
             return;
         }
-        //previousPlayerHeldBy.activatingItem = false;
         bool flag = false;
         bool flag2 = false;
         bool flag3 = false;
@@ -270,23 +322,11 @@ public class JailbirdShovel : GrabbableObject
                 WalkieTalkie.TransmitOneShotAudio(jailbirdAudio, StartOfRound.Instance.footstepSurfaces[num].hitSurfaceSFX, 1f);
             }
             playerHeldBy.playerBodyAnimator.SetTrigger("shovelHit");
-            HitShovelServerRpc(num, doExplode);
+            HitJailbirdServerRpc(num);
         }
     }
 
-    [ServerRpc]
-    public void HitShovelServerRpc(int soundID, bool explode)
-    {
-        HitShovelClientRpc(soundID, doExplode);
-    }
-
-    [ClientRpc]
-    public void HitShovelClientRpc(int soundID, bool explode)
-    {
-        HitSurfaceWithShovel(soundID, doExplode);
-    }
-
-    public void HitSurfaceWithShovel(int hitSurfaceID, bool explode)
+    public void HitSurfaceWithJailbird(int hitSurfaceID)
     {
         try
         {
@@ -295,33 +335,34 @@ public class JailbirdShovel : GrabbableObject
         }
         catch (Exception e)
         {
-            Plugin.Logger.LogWarning("Error when playing shovel hit sound, are spawning things that arent naturally on that moon?");
+            Plugin.Logger.LogWarning("Error when playing shovel hit sound, are you spawning things that arent naturally on that moon?");
             Plugin.Logger.LogWarning(e);
         }
-        StartCoroutine(durabilityHandler(explode));
+        StartCoroutine(durabilityHandler());
     }
-    public IEnumerator durabilityHandler(bool explode)
+
+    public IEnumerator durabilityHandler()
     {
         Plugin.Logger.LogInfo(1);
         if (durability == 0)
         {
             Plugin.Logger.LogInfo(2);
-            if (explode)
-            {
-                Plugin.Logger.LogInfo(3);
-                //StartCoroutine(Plugin.ExplodeAtDelayed(previousPlayerHeldBy.transform.position, 0.1f));
-                yield return new WaitForFixedUpdate();
-                Landmine.SpawnExplosion(playerHeldBy.transform.position + playerHeldBy.transform.forward * 0.5f, true, 3, 3, 50);
-                yield return new WaitForFixedUpdate();
-            }
+            yield return new WaitForFixedUpdate();
             Plugin.Logger.LogInfo(4);
             try
             {
-                previousPlayerHeldBy.DespawnHeldObject();
+                Plugin.Logger.LogInfo(4.1);
+                Vector3 explosionPosition = playerHeldBy.transform.position + playerHeldBy.transform.forward * 0.5f;
+                Plugin.Logger.LogInfo(4.2);
+                ExplosionHelper._instance.ExplodeDelayed(explosionPosition);
+                Plugin.Logger.LogInfo(4.3);
+                DestroyObjectInHand(playerHeldBy);
+                Plugin.Logger.LogInfo(4.4);
             }
-            catch
+            catch (Exception ex)
             {
                 Plugin.Logger.LogWarning("tried to destroy jailbird but jailbird is already destroyed");
+                Plugin.Logger.LogError(ex);
             }
         }
         Plugin.Logger.LogInfo(5);

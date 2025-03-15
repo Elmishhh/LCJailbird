@@ -6,6 +6,7 @@ using UnityEngine;
 using LethalLib;
 using LethalLib.Modules;
 using System.Collections;
+using LCJailbird.HelperBehaviour;
 
 namespace LCJailbird
 {
@@ -40,6 +41,8 @@ namespace LCJailbird
             LoadAssetBundle();
 
             Patch();
+            GameObject temp = new GameObject("LCJailbird Explosion Helper", typeof(ExplosionHelper));
+            GameObject.DontDestroyOnLoad(temp);
         }
 
         private void LoadAssetBundle()
@@ -68,13 +71,15 @@ namespace LCJailbird
                 jbitem.hitSFX = new AudioClip[1];
                 jbitem.hitSFX[0] = bundle.LoadAsset<AudioClip>("Normal_Hit");
                 jbitem.jailbirdAudio = jailbirditemprops.spawnPrefab.transform.GetComponent<AudioSource>();
+                jbitem.jailbirdAudio.spatialBlend = 0.8f;
+                jbitem.jailbirdAudio.spatialize = true;
 
                 jailbirditemprops.twoHandedAnimation = true;
                 jailbirditemprops.grabAnim = "HoldLung";
                 jailbirditemprops.holdButtonUse = true;
 
-                jailbirditemprops.spawnPrefab.transform.GetChild(0).transform.localPosition = new Vector3(0, 0, -0.05f); // read the next comment on why i'm doing this
-                jailbirditemprops.spawnPrefab.transform.GetChild(0).transform.localRotation = Quaternion.Euler(270, 290, 0); // for those who are unfortunate enough to read my code, i'm sorry i could not be bothered to build and replace the bundle every 2 seconds when i'm tweaking the rotation
+                jailbirditemprops.positionOffset = new Vector3(0, 0, -0.2f);
+                jailbirditemprops.rotationOffset = new Vector3(270, 110, 0);
             }
             Utilities.FixMixerGroups(jailbirditemprops.spawnPrefab);
 
