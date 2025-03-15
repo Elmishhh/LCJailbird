@@ -23,7 +23,7 @@ public class JailbirdShovel : GrabbableObject
     public bool doAttack;
     public bool doExplode;
 
-    public int durability = 1;
+    public int durability = 4;
     public int jailbirdChargeSpeed = 35;
     public int jailbirdHitForce = 5;
 
