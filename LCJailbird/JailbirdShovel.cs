@@ -79,20 +79,18 @@ public class JailbirdShovel : GrabbableObject
     {
         playerHeldBy.activatingItem = true;
         playerHeldBy.twoHanded = true;
-        
+
         playerHeldBy.playerBodyAnimator.ResetTrigger("shovelHit");
         playerHeldBy.playerBodyAnimator.SetBool("reelingUp", value: true);
-        jailbirdAudio.PlayOneShot(reelUpSFX);
         ReelUpSFXServerRpc();
 
         yield return new WaitForSeconds(5.5f);
 
-        StartCoroutine(chargeTimer(3)); // max charge time
-        jailbirdAudio.PlayOneShot(chargeSFX); // starts charge SFX
+        StartCoroutine(chargeTimer(3)); // max charge time = 3
         ChargingSFXServerRpc();
         checkEnemyInfront = true;
+
         yield return new WaitUntil(() => (chargeTimerFinished && !chargeTimerActive) || doAttack);
-        jailbirdAudio.Stop(); // stops charge SFX if it's still playing
         StopSFXServerRpc();
         if (durability <= 1) { doExplode = doAttack; }
         checkEnemyInfront = false;
@@ -123,7 +121,8 @@ public class JailbirdShovel : GrabbableObject
     {
         if (checkEnemyInfront)
         {
-            doAttack = Physics.SphereCast(origin: previousPlayerHeldBy.gameplayCamera.transform.position + previousPlayerHeldBy.gameplayCamera.transform.right * -0.35f, 0.55f, previousPlayerHeldBy.gameplayCamera.transform.forward, out RCHit, 1.85f, jailbirdMaskint, QueryTriggerInteraction.Collide);
+            Vector3 direction = new Vector3(previousPlayerHeldBy.gameplayCamera.transform.forward.x, 0, previousPlayerHeldBy.gameplayCamera.transform.forward.z).normalized;
+            doAttack = Physics.SphereCast(origin: previousPlayerHeldBy.gameplayCamera.transform.position + previousPlayerHeldBy.gameplayCamera.transform.right * -0.35f, 0.55f, direction, out RCHit, 1.85f, jailbirdMaskint, QueryTriggerInteraction.Collide);
             Plugin.Logger.LogInfo(doAttack);
         }
         if (chargeTimerActive && !chargeTimerFinished)
@@ -134,7 +133,7 @@ public class JailbirdShovel : GrabbableObject
             }
             else
             {
-                previousPlayerHeldBy.externalForces = new Vector3(previousPlayerHeldBy.gameplayCamera.transform.forward.x, 0, previousPlayerHeldBy.gameplayCamera.transform.forward.z) * jailbirdChargeSpeed;
+                previousPlayerHeldBy.externalForces = new Vector3(previousPlayerHeldBy.gameplayCamera.transform.forward.x, 0, previousPlayerHeldBy.gameplayCamera.transform.forward.z).normalized * jailbirdChargeSpeed;
             }
         }
     }
@@ -213,6 +212,30 @@ public class JailbirdShovel : GrabbableObject
     public void HitJailbirdClientRpc(int soundID)
     {
         HitSurfaceWithJailbird(soundID);
+    }
+    #endregion
+    #region stun enemies RPCs
+    [ServerRpc]
+    public void StunEnemiesServerRpc(ulong enemyID)
+    {
+        StunEnemiesClientRpc(enemyID);
+    }
+    [ClientRpc]
+    public void StunEnemiesClientRpc(ulong enemyID)
+    {
+        TryStunEnemy(enemyID);
+    }
+    #endregion
+    #region durability RPCs
+    [ServerRpc]
+    public void ChangeDurabilityServerRpc(int newDurability)
+    {
+        ChangeDurabilityClientRpc(newDurability);
+    }
+    [ClientRpc]
+    public void ChangeDurabilityClientRpc(int newDurability)
+    {
+        ChangeDurability(newDurability);
     }
     #endregion
     public override void DiscardItem()
@@ -295,9 +318,14 @@ public class JailbirdShovel : GrabbableObject
                             flag3 = true;
                         }
                         bool flag4 = hittable.Hit(jailbirdHitForce, forward, previousPlayerHeldBy, true, 1);
+                        if (flag4)
+                        {
+                            ChangeDurabilityServerRpc(durability - 1);
+                        }
                         if (flag4 && component != null)
                         {
                             list.Add(component.mainScript);
+                            StunEnemiesServerRpc(component.mainScript.NetworkObjectId);
                         }
                         if (!flag2)
                         {
@@ -338,48 +366,36 @@ public class JailbirdShovel : GrabbableObject
             Plugin.Logger.LogWarning("Error when playing shovel hit sound, are you spawning things that arent naturally on that moon?");
             Plugin.Logger.LogWarning(e);
         }
-        StartCoroutine(durabilityHandler());
+    }
+    public void ChangeDurability(int newDurability)
+    {
+        Plugin.Logger.LogInfo($"new durability is: {newDurability}");
+        if (newDurability == 0 && durability == 1)
+        {
+            this.transform.Find("jailbird/Mesh_Jailbird/red_glow").gameObject.SetActive(true);
+            this.transform.Find("jailbird/Mesh_Jailbird/blue_glow").gameObject.SetActive(false);
+        }
+        else if (newDurability == -1 && durability == 0)
+        {
+            Vector3 explosionPosition = playerHeldBy.transform.position + playerHeldBy.transform.forward * 0.5f;
+            DestroyObjectInHand(playerHeldBy);
+            ExplosionHelper._instance.ExplodeDelayed(explosionPosition);
+        }
+        durability = newDurability;
     }
 
-    public IEnumerator durabilityHandler()
+    public void TryStunEnemy(ulong enemyID)
     {
-        Plugin.Logger.LogInfo(1);
-        if (durability == 0)
+        RoundManager.Instance.RefreshEnemiesList();
+        foreach (EnemyAI spawnedEnemy in RoundManager.Instance.SpawnedEnemies)
         {
-            Plugin.Logger.LogInfo(2);
-            yield return new WaitForFixedUpdate();
-            Plugin.Logger.LogInfo(4);
-            try
+            if (spawnedEnemy.NetworkObjectId == enemyID)
             {
-                Plugin.Logger.LogInfo(4.1);
-                Vector3 explosionPosition = playerHeldBy.transform.position + playerHeldBy.transform.forward * 0.5f;
-                Plugin.Logger.LogInfo(4.2);
-                ExplosionHelper._instance.ExplodeDelayed(explosionPosition);
-                Plugin.Logger.LogInfo(4.3);
-                DestroyObjectInHand(playerHeldBy);
-                Plugin.Logger.LogInfo(4.4);
-            }
-            catch (Exception ex)
-            {
-                Plugin.Logger.LogWarning("tried to destroy jailbird but jailbird is already destroyed");
-                Plugin.Logger.LogError(ex);
+                Plugin.Logger.LogMessage($"found enemy with id {enemyID}");
+                spawnedEnemy.SetEnemyStunned(true, 4.5f);
+                return;
             }
         }
-        Plugin.Logger.LogInfo(5);
-        if (durability > 0)
-        {
-            Plugin.Logger.LogInfo(6);
-            durability--;
-            Plugin.Logger.LogInfo(7);
-            if (durability == 0)
-            {
-                Plugin.Logger.LogInfo(8);
-                this.transform.Find("jailbird/Mesh_Jailbird/red_glow").gameObject.SetActive(true);
-                Plugin.Logger.LogInfo(9);
-                this.transform.Find("jailbird/Mesh_Jailbird/blue_glow").gameObject.SetActive(false);
-                Plugin.Logger.LogInfo(10);
-            }
-        }
-        Plugin.Logger.LogInfo(11);
+        Plugin.Logger.LogError($"could not find enemy with id {enemyID}");
     }
 }

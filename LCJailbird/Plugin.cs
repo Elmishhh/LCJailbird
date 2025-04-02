@@ -10,6 +10,13 @@ using LCJailbird.HelperBehaviour;
 
 namespace LCJailbird
 {
+    public class MyPluginInfo
+    {
+        public const string PLUGIN_GUID = "com.github.elmish.LCJailbird";
+        public const string PLUGIN_NAME = "LCJailbird";
+        public const string PLUGIN_VERSION = "1.0.1";
+    }
+
     [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
     public class Plugin : BaseUnityPlugin
     {
@@ -71,15 +78,7 @@ namespace LCJailbird
                 jbitem.hitSFX = new AudioClip[1];
                 jbitem.hitSFX[0] = bundle.LoadAsset<AudioClip>("Normal_Hit");
                 jbitem.jailbirdAudio = jailbirditemprops.spawnPrefab.transform.GetComponent<AudioSource>();
-                jbitem.jailbirdAudio.spatialBlend = 0.8f;
                 jbitem.jailbirdAudio.spatialize = true;
-
-                jailbirditemprops.twoHandedAnimation = true;
-                jailbirditemprops.grabAnim = "HoldLung";
-                jailbirditemprops.holdButtonUse = true;
-
-                jailbirditemprops.positionOffset = new Vector3(0, 0, -0.2f);
-                jailbirditemprops.rotationOffset = new Vector3(270, 110, 0);
             }
             Utilities.FixMixerGroups(jailbirditemprops.spawnPrefab);
 
